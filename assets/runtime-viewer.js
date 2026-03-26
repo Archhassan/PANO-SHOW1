@@ -1,10 +1,29 @@
 import * as THREE from './three.module.js'
 import { applyRuntimeSkin, resolveRuntimeSkin } from './runtime-skin.js'
+import {
+  getHotspotBaseTexture,
+  getHotspotPulseTexture,
+  getHotspotVisualDefinition,
+} from './runtime-hotspot-visuals.js'
 
 const PANORAMA_RADIUS = 500
 const HOTSPOT_RADIUS = PANORAMA_RADIUS - 4
 const DEFAULT_MIN_PITCH = THREE.MathUtils.degToRad(-88)
 const DEFAULT_MAX_PITCH = THREE.MathUtils.degToRad(88)
+const SCALE_MULTIPLIER = 1.8
+const WORLD_UP = new THREE.Vector3(0, 1, 0)
+const WORLD_RIGHT = new THREE.Vector3(1, 0, 0)
+const INNER_PULSE_DURATION_MS = 800
+const OUTER_PULSE_DURATION_MS = 1800
+const OUTER_PULSE_DELAY_MS = 300
+let sharedPlaneGeometry = null
+
+function getPlaneGeometry() {
+  if (!sharedPlaneGeometry) {
+    sharedPlaneGeometry = new THREE.PlaneGeometry(1, 1)
+  }
+  return sharedPlaneGeometry
+}
 
 const viewerHost = document.getElementById('runtime-viewer')
 const fadeEl = document.getElementById('runtime-fade')
@@ -80,8 +99,8 @@ function normalizeProject(project) {
     scenes: (project.scenes ?? []).map((scene) => ({
       ...scene,
       hotspots: (scene.hotspots ?? []).map((hotspot) => ({
-        visualType: 'floor',
         ...hotspot,
+        visualType: hotspot.visualType ?? 'floor',
       })),
       ...sceneSettings[scene.id],
     })),
@@ -260,112 +279,15 @@ class PanoramaControls {
   }
 }
 
-function createMarkerTexture(type) {
-  const key = `marker:${type}`
-  if (!createMarkerTexture.cache.has(key)) {
-    const canvas = document.createElement('canvas')
-    canvas.width = 128
-    canvas.height = 128
-    const ctx = canvas.getContext('2d')
-    const cx = 64
-    const cy = 64
-
-    ctx.clearRect(0, 0, 128, 128)
-    ctx.beginPath()
-    ctx.arc(cx, cy, 40, 0, Math.PI * 2)
-    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 44)
-    glow.addColorStop(0, 'rgba(255,243,196,0.34)')
-    glow.addColorStop(0.6, 'rgba(255,243,196,0.12)')
-    glow.addColorStop(1, 'rgba(255,243,196,0)')
-    ctx.fillStyle = glow
-    ctx.fill()
-
-    ctx.beginPath()
-    ctx.arc(cx, cy, 30, 0, Math.PI * 2)
-    const fill = ctx.createRadialGradient(cx, cy - 4, 4, cx, cy, 32)
-    fill.addColorStop(0, '#ffffff')
-    fill.addColorStop(0.65, '#fff3c6')
-    fill.addColorStop(1, '#f0c24b')
-    ctx.fillStyle = fill
-    ctx.fill()
-    ctx.lineWidth = 5
-    ctx.strokeStyle = 'rgba(14,16,22,0.95)'
-    ctx.stroke()
-
-    ctx.fillStyle = 'rgba(20,22,30,0.92)'
-    ctx.strokeStyle = 'rgba(20,22,30,0.92)'
-    ctx.lineWidth = 8
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-
-    if (type === 'pin') {
-      ctx.beginPath()
-      ctx.moveTo(cx, cy + 28)
-      ctx.bezierCurveTo(cx + 18, cy + 8, cx + 18, cy - 18, cx, cy - 18)
-      ctx.bezierCurveTo(cx - 18, cy - 18, cx - 18, cy + 8, cx, cy + 28)
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.arc(cx, cy, 7, 0, Math.PI * 2)
-      ctx.fill()
-    } else if (type === 'info') {
-      ctx.beginPath()
-      ctx.arc(cx, cy - 12, 4, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.beginPath()
-      ctx.moveTo(cx, cy)
-      ctx.lineTo(cx, cy + 18)
-      ctx.stroke()
-    } else {
-      const drawArrow = (rotationDeg, curved = false, double = false) => {
-        ctx.save()
-        ctx.translate(cx, cy)
-        ctx.rotate(THREE.MathUtils.degToRad(rotationDeg))
-        if (curved) {
-          ctx.beginPath()
-          ctx.arc(0, 6, 16, Math.PI * 0.15, Math.PI * 1.2, rotationDeg < 0)
-          ctx.stroke()
-          ctx.beginPath()
-          ctx.moveTo(4, -18)
-          ctx.lineTo(18, -14)
-          ctx.lineTo(8, -2)
-          ctx.closePath()
-          ctx.fill()
-        } else {
-          const offsets = double ? [-11, 11] : [0]
-          for (const offset of offsets) {
-            ctx.beginPath()
-            ctx.moveTo(offset, -18)
-            ctx.lineTo(offset + 16, 4)
-            ctx.lineTo(offset + 6, 4)
-            ctx.lineTo(offset + 6, 18)
-            ctx.lineTo(offset - 6, 18)
-            ctx.lineTo(offset - 6, 4)
-            ctx.lineTo(offset - 16, 4)
-            ctx.closePath()
-            ctx.fill()
-          }
-        }
-        ctx.restore()
-      }
-
-      if (type === 'arrow-left') drawArrow(-90)
-      else if (type === 'arrow-right') drawArrow(90)
-      else if (type === 'turn-left') drawArrow(-90, true)
-      else if (type === 'turn-right') drawArrow(90, true)
-      else if (type === 'double') drawArrow(0, false, true)
-      else drawArrow(0)
-    }
-
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.colorSpace = THREE.SRGBColorSpace
-    texture.needsUpdate = true
-    createMarkerTexture.cache.set(key, texture)
-  }
-  return createMarkerTexture.cache.get(key)
+function easeInOutSine(t) {
+  return -(Math.cos(Math.PI * t) - 1) / 2
 }
-createMarkerTexture.cache = new Map()
+
+function loop01(nowMs, durationMs, delayMs = 0) {
+  const shifted = nowMs - delayMs
+  const normalized = ((shifted % durationMs) + durationMs) % durationMs
+  return normalized / durationMs
+}
 
 class HotspotLayer {
   constructor(rotationRoot) {
@@ -374,41 +296,120 @@ class HotspotLayer {
     this.group.renderOrder = 2
     rotationRoot.add(this.group)
     this.vector = new THREE.Vector3()
-    this.sprites = []
+    this.inward = new THREE.Vector3()
+    this.tangentUp = new THREE.Vector3()
+    this.tangentRight = new THREE.Vector3()
+    this.tangentMatrix = new THREE.Matrix4()
+    this.markers = []
+    this.animate = this.animate.bind(this)
+    this.raf = requestAnimationFrame(this.animate)
   }
 
   sync(hotspots) {
-    for (const sprite of this.sprites) {
-      this.group.remove(sprite)
-      sprite.material.dispose()
+    for (const marker of this.markers) {
+      this.group.remove(marker.root)
+      marker.baseMesh.material.dispose()
+      marker.pulseMesh.material.dispose()
     }
-    this.sprites = []
+    this.markers = []
 
     for (const hotspot of hotspots) {
-      const material = new THREE.SpriteMaterial({
-        map: createMarkerTexture(hotspot.visualType || 'floor'),
-        transparent: true,
-        depthTest: true,
-        depthWrite: false,
-      })
-      const sprite = new THREE.Sprite(material)
-      sprite.userData.hotspot = hotspot
+      const visualType = hotspot.visualType || 'floor'
+      const visual = getHotspotVisualDefinition(visualType)
+      const root = new THREE.Group()
       yawPitchToVector(hotspot.yaw, hotspot.pitch, this.vector)
-      sprite.position.copy(this.vector.multiplyScalar(HOTSPOT_RADIUS))
-      const isPin = hotspot.visualType === 'pin'
-      sprite.scale.setScalar(isPin ? 28 : 22)
-      sprite.renderOrder = 2
-      this.group.add(sprite)
-      this.sprites.push(sprite)
+      root.position.copy(this.vector.multiplyScalar(HOTSPOT_RADIUS))
+
+      this.inward.copy(root.position).normalize().multiplyScalar(-1)
+      this.tangentUp.copy(WORLD_UP).projectOnPlane(this.inward)
+      if (this.tangentUp.lengthSq() < 1e-6) {
+        this.tangentUp.copy(WORLD_RIGHT).projectOnPlane(this.inward)
+      }
+      this.tangentUp.normalize()
+      this.tangentRight.crossVectors(this.tangentUp, this.inward).normalize()
+      this.tangentMatrix.makeBasis(this.tangentRight, this.tangentUp, this.inward)
+      root.setRotationFromMatrix(this.tangentMatrix)
+
+      const baseMesh = new THREE.Mesh(
+        getPlaneGeometry(),
+        new THREE.MeshBasicMaterial({
+          map: getHotspotBaseTexture(visualType),
+          transparent: true,
+          depthTest: true,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        })
+      )
+      baseMesh.userData.hotspot = hotspot
+      baseMesh.renderOrder = 2
+
+      const pulseMesh = new THREE.Mesh(
+        getPlaneGeometry(),
+        new THREE.MeshBasicMaterial({
+          map: getHotspotPulseTexture(visualType),
+          transparent: true,
+          depthTest: true,
+          depthWrite: false,
+          opacity: visual.pulse ? visual.outerPulseOpacity : 0,
+          side: THREE.DoubleSide,
+        })
+      )
+      pulseMesh.userData.hotspot = hotspot
+      pulseMesh.position.z = -0.01
+      pulseMesh.visible = visual.pulse
+      pulseMesh.renderOrder = 1
+
+      root.add(pulseMesh)
+      root.add(baseMesh)
+      root.scale.set(
+        visual.width * SCALE_MULTIPLIER,
+        visual.height * SCALE_MULTIPLIER,
+        1
+      )
+      this.group.add(root)
+      this.markers.push({
+        root,
+        baseMesh,
+        pulseMesh,
+        pulseEnabled: visual.pulse,
+        innerPulseScale: visual.innerPulseScale,
+        outerPulseScale: visual.outerPulseScale,
+        outerPulseOpacity: visual.outerPulseOpacity,
+      })
     }
   }
 
   getPickables() {
-    return this.sprites
+    return this.markers.flatMap((marker) => [marker.baseMesh, marker.pulseMesh])
+  }
+
+  animate(now) {
+    this.raf = requestAnimationFrame(this.animate)
+    for (const marker of this.markers) {
+      const innerPulsePhase = loop01(now, INNER_PULSE_DURATION_MS)
+      const innerPulseValue = easeInOutSine(
+        innerPulsePhase <= 0.5 ? innerPulsePhase * 2 : (1 - innerPulsePhase) * 2
+      )
+      const innerScale = 1 + innerPulseValue * marker.innerPulseScale
+      marker.baseMesh.scale.set(innerScale, innerScale, 1)
+
+      if (marker.pulseEnabled) {
+        const outerPulsePhase = loop01(now, OUTER_PULSE_DURATION_MS, OUTER_PULSE_DELAY_MS)
+        const outerPulseValue = easeInOutSine(outerPulsePhase)
+        const outerScale = 1 + outerPulseValue * marker.outerPulseScale
+        marker.pulseMesh.scale.set(outerScale, outerScale, 1)
+        marker.pulseMesh.material.opacity = THREE.MathUtils.lerp(
+          marker.outerPulseOpacity,
+          0,
+          outerPulseValue
+        )
+      }
+    }
   }
 
   dispose() {
     this.sync([])
+    cancelAnimationFrame(this.raf)
     this.group.parent?.remove(this.group)
   }
 }
