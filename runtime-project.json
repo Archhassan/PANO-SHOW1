@@ -1,17 +1,67 @@
 {
-  "currentSceneId": "scene-1",
+  "currentSceneId": "scene-2",
   "scenes": [
     {
       "id": "scene-1",
       "name": "Scene 1",
       "panoramaSrc": "assets/scene-1.jpg",
-      "hotspots": []
+      "hotspots": [
+        {
+          "kind": "navigation",
+          "visualType": "floor",
+          "id": "hs-mn7p3cpv-0outrm",
+          "yaw": -153.72285281793884,
+          "pitch": -17.10469193441809,
+          "label": "Hotspot",
+          "targetSceneId": "scene-2",
+          "targetYaw": null,
+          "targetPitch": null,
+          "targetFov": null
+        },
+        {
+          "kind": "navigation",
+          "visualType": "floor",
+          "id": "hs-mn7p3cq0-ay5egj",
+          "yaw": -153.72285281793884,
+          "pitch": -17.10469193441809,
+          "label": "Hotspot",
+          "targetSceneId": "scene-2",
+          "targetYaw": null,
+          "targetPitch": null,
+          "targetFov": null
+        }
+      ]
     },
     {
       "id": "scene-2",
       "name": "Scene 2",
       "panoramaSrc": "assets/scene-2.jpg",
-      "hotspots": []
+      "hotspots": [
+        {
+          "kind": "navigation",
+          "visualType": "floor",
+          "id": "hs-mn7p3x8l-cf4pe3",
+          "yaw": 5.373286321819784,
+          "pitch": -31.629712993824715,
+          "label": "Hotspot",
+          "targetSceneId": "scene-1",
+          "targetYaw": null,
+          "targetPitch": null,
+          "targetFov": null
+        },
+        {
+          "kind": "navigation",
+          "visualType": "floor",
+          "id": "hs-mn7p3x8o-14mabm",
+          "yaw": 5.373286321819784,
+          "pitch": -31.629712993824715,
+          "label": "Hotspot",
+          "targetSceneId": "scene-1",
+          "targetYaw": null,
+          "targetPitch": null,
+          "targetFov": null
+        }
+      ]
     }
   ],
   "branding": {
