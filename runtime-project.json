@@ -1,0 +1,61 @@
+{
+  "currentSceneId": "scene-1",
+  "scenes": [
+    {
+      "id": "scene-1",
+      "name": "Scene 1",
+      "panoramaSrc": "assets/scene-1.jpg",
+      "hotspots": []
+    },
+    {
+      "id": "scene-2",
+      "name": "Scene 2",
+      "panoramaSrc": "assets/scene-2.jpg",
+      "hotspots": []
+    }
+  ],
+  "branding": {
+    "projectName": "Panorama Project",
+    "designerName": "",
+    "officeName": "ARCHITECTURALL CENTER",
+    "officeLogoSrc": "assets/branding-logo.png"
+  },
+  "skin": {
+    "brandingPosition": "top-left",
+    "showProjectTitle": true,
+    "showOfficeBranding": true,
+    "theme": "dark",
+    "controlBarPosition": "top-right"
+  },
+  "settings": {
+    "global": {
+      "defaultInitialYaw": 0,
+      "defaultInitialPitch": 0,
+      "defaultInitialFov": 70,
+      "defaultAutoRotateSpeed": 0,
+      "defaultDragSensitivity": 0.00205,
+      "defaultPitchSensitivity": 0.0031160000000000003,
+      "defaultZoomSpeed": 0.08
+    },
+    "scenes": {
+      "scene-1": {
+        "initialYaw": 0,
+        "initialPitch": 0,
+        "initialFov": 70,
+        "autoRotateSpeed": 0,
+        "dragSensitivity": 0.00205,
+        "pitchSensitivity": 0.0031160000000000003,
+        "zoomSpeed": 0.08
+      },
+      "scene-2": {
+        "initialYaw": 0,
+        "initialPitch": 0,
+        "initialFov": 70,
+        "autoRotateSpeed": 0,
+        "dragSensitivity": 0.00205,
+        "pitchSensitivity": 0.0031160000000000003,
+        "zoomSpeed": 0.08
+      }
+    }
+  }
+}

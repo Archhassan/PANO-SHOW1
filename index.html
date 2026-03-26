@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panorama Tour</title>
+    <link rel="stylesheet" href="./assets/runtime-viewer.css" />
+  </head>
+  <body>
+    <div class="runtime-shell">
+      <div id="runtime-branding" class="runtime-branding" hidden>
+        <div id="runtime-branding-office-card" class="runtime-branding__office-card" hidden>
+          <img id="runtime-branding-logo" class="runtime-branding__logo" alt="" hidden />
+          <div class="runtime-branding__copy">
+            <p id="runtime-branding-office" class="runtime-branding__office" hidden></p>
+          </div>
+        </div>
+        <div id="runtime-branding-project-card" class="runtime-branding__project-card" hidden>
+          <h1 id="runtime-branding-project" class="runtime-branding__project" hidden></h1>
+          <p id="runtime-branding-designer" class="runtime-branding__designer" hidden></p>
+        </div>
+      </div>
+      <div class="runtime-controls" aria-label="Viewer controls">
+        <button id="runtime-fullscreen" class="runtime-control-btn" type="button" aria-label="Enter fullscreen">
+          Fullscreen
+        </button>
+        <button id="runtime-reset-view" class="runtime-control-btn" type="button" aria-label="Reset view">
+          Reset
+        </button>
+        <button id="runtime-zoom-in" class="runtime-control-btn" type="button" aria-label="Zoom in">
+          +
+        </button>
+        <button id="runtime-zoom-out" class="runtime-control-btn" type="button" aria-label="Zoom out">
+          -
+        </button>
+      </div>
+      <div id="runtime-viewer" class="runtime-viewer"></div>
+      <div id="runtime-fade" class="runtime-fade"></div>
+      <div id="runtime-loading" class="runtime-loading">Loading panorama...</div>
+      <div id="runtime-error" class="runtime-error" hidden></div>
+    </div>
+    <script type="module" src="./assets/runtime-viewer.js"></script>
+  </body>
+</html>
